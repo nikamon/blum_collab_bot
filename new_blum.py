@@ -17,9 +17,9 @@ def get_window(window):
     if windows:
         window = windows[0]
         region_left = window.left
-        region_top = window.top + 150
+        region_top = window.top
         region_width = window.width
-        region_height = window.height - 150
+        region_height = window.height
         return region_left, region_top, region_width, region_height
     else:
         raise Exception(f"Окно '{window}' не найдено.")
@@ -36,26 +36,15 @@ star_templates_5s = [
 ]
 
 star_templates = [
-    ('1', cv2.imread('10.png', cv2.IMREAD_COLOR)),
-    ('2', cv2.imread('11.png', cv2.IMREAD_COLOR)),
-    ('3', cv2.imread('12.png', cv2.IMREAD_COLOR)),
-    ('4', cv2.imread('13.png', cv2.IMREAD_COLOR)),
-    ('5', cv2.imread('14.png', cv2.IMREAD_COLOR)),
-    ('6', cv2.imread('15.png', cv2.IMREAD_COLOR)),
-    ('7', cv2.imread('16.png', cv2.IMREAD_COLOR)),
-    ('8', cv2.imread('17.png', cv2.IMREAD_COLOR)),
-    ('9', cv2.imread('18.png', cv2.IMREAD_COLOR)),
-    ('10', cv2.imread('19.png', cv2.IMREAD_COLOR)),
-    ('11', cv2.imread('20.png', cv2.IMREAD_COLOR)),
-    ('12', cv2.imread('21.png', cv2.IMREAD_COLOR)),
-    ('13', cv2.imread('22.png', cv2.IMREAD_COLOR)),
-    ('14', cv2.imread('23.png', cv2.IMREAD_COLOR)),
-    ('15', cv2.imread('24.png', cv2.IMREAD_COLOR)),
-    ('16', cv2.imread('25.png', cv2.IMREAD_COLOR)),
-    ('17', cv2.imread('26.png', cv2.IMREAD_COLOR)),
-    ('18', cv2.imread('27.png', cv2.IMREAD_COLOR)),
-    ('19', cv2.imread('28.png', cv2.IMREAD_COLOR)),
-    ('20', cv2.imread('29.png', cv2.IMREAD_COLOR)),
+    ('1', cv2.imread('1.png', cv2.IMREAD_COLOR)),
+    ('2', cv2.imread('2.png', cv2.IMREAD_COLOR)),
+    ('3', cv2.imread('3.png', cv2.IMREAD_COLOR)),
+    ('7', cv2.imread('7.jpg', cv2.IMREAD_COLOR)),
+    ('8', cv2.imread('8.jpg', cv2.IMREAD_COLOR)),
+    ('9', cv2.imread('9.jpg', cv2.IMREAD_COLOR)),
+    ('10', cv2.imread('10.jpg', cv2.IMREAD_COLOR)),
+    ('11', cv2.imread('11.jpg', cv2.IMREAD_COLOR)),
+    ('12', cv2.imread('12.jpg', cv2.IMREAD_COLOR)),
 ]
 
 
@@ -87,7 +76,7 @@ def choose_window_gui():
         return None
 
 
-def grab_screen(region, scale_factor=0.3):
+def grab_screen(region, scale_factor=0.5):
     screenshot = pyautogui.screenshot(region=region)
     screenshot = np.array(screenshot)
     screenshot = cv2.cvtColor(screenshot, cv2.COLOR_RGB2BGR)
@@ -97,7 +86,7 @@ def grab_screen(region, scale_factor=0.3):
     return resized_screenshot
 
 
-def find_template_on_screen(template, screenshot, step=0.4, scale_factor=0.3):
+def find_template_on_screen(template, screenshot, step=0.75, scale_factor=0.5):
     new_width = int(template.shape[1] * scale_factor)
     new_height = int(template.shape[0] * scale_factor)
     resized_template = cv2.resize(template, (new_width, new_height))
@@ -109,12 +98,15 @@ def find_template_on_screen(template, screenshot, step=0.4, scale_factor=0.3):
 
 
 def click_on_screen(position, template_width, template_height, region_left, region_top):
+
     center_x = position[0] + template_width // 2
     center_y = position[1] + template_height // 2
-    click(center_x + region_left, center_y + region_top)
+    click(center_x + region_left, center_y + region_top+4)
+
 
 
 def process_template(template_data, screenshot, scale_factor, region_left, region_top):
+
     template_name, template = template_data
     if template is None:
         print(f"Ошибка загрузки {template_name}")
@@ -123,6 +115,7 @@ def process_template(template_data, screenshot, scale_factor, region_left, regio
     if position:
         template_height, template_width, _ = template.shape
         click_on_screen(position, template_width, template_height, region_left, region_top)
+
         return template_name, position
     return template_name, None
 
@@ -149,6 +142,7 @@ last_check_time_10s = time.time()
 last_check_time_5s = time.time()
 
 while True:
+
     if keyboard.is_pressed('S') and time.time() - last_pause_time > 0.1:
         paused = not paused
         last_pause_time = time.time()
@@ -171,25 +165,27 @@ while True:
             telegram_window.restore()
 
     if not paused:
+
         screenshot = grab_screen(window_rect)
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = []
             current_time = time.time()
 
             if current_time - last_check_time_10s >= 5:
-                futures += [executor.submit(process_template, template_data, screenshot, 0.3, telegram_window.left, telegram_window.top) for template_data in star_templates_10s]
+                futures += [executor.submit(process_template, template_data, screenshot, 0.5, telegram_window.left, telegram_window.top) for template_data in star_templates_10s]
                 last_check_time_10s = current_time
 
             # Удалить эти три строки, если не нужна заморозка и вверху скрипта удалить
             if current_time - last_check_time_5s >= 1:
-                futures += [executor.submit(process_template, template_data, screenshot, 0.3, telegram_window.left, telegram_window.top) for template_data in star_templates_5s]
+                futures += [executor.submit(process_template, template_data, screenshot, 0.5, telegram_window.left, telegram_window.top) for template_data in star_templates_5s]
                 last_check_time_5s = current_time
 
 
-            futures += [executor.submit(process_template, template_data, screenshot, 0.3, telegram_window.left, telegram_window.top) for template_data in star_templates]
+            futures += [executor.submit(process_template, template_data, screenshot, 0.5, telegram_window.left, telegram_window.top) for template_data in star_templates]
 
             for future in concurrent.futures.as_completed(futures):
                 template_name, position = future.result()
+
 
 
 print('Стоп')
